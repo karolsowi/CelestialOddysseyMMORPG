@@ -1,3 +1,30 @@
+import numpy as np
+import pygame 
+from network import Network
+import time
+import random
+import rsa
+
+playerID = random.randint(1, 100000)
+
+width = 1024
+height = 768
+rows = 20 
+
+skins = {
+    "red": "assets/ghost_red.png",
+    "green": "assets/ghost_green.png",
+    "blue": "assets/ghost_blue.png",
+    "yellow": "assets/ghost_yellow.png",
+    "orange": "assets/ghost_orange.png",
+    "purple": "assets/ghost_purple.png",
+    "cyan": "assets/ghost_cyan.png",
+    "white": "assets/ghost_white.png",
+    "gray": "assets/ghost_gray.png",
+    "black": "assets/ghost_black.png",
+} 
+skins_list = list(skins.values())
+
 def drawBg(w, surface):
     global rows
     bg_dungeon = pygame.image.load("assets/dungeon.png")
@@ -65,3 +92,89 @@ def main():
     
     #Send the client public key to the server
     #n.send()
+    
+    while flag:
+        events = pygame.event.get()
+        pos = None 
+        chat = None
+        ignore = False
+        if len(events) > 0 :
+            
+            for event in events : 
+                if event.type == pygame.QUIT:
+                    flag = False
+                    pos = n.send("quit", receive=True) 
+                    pygame.quit()
+                
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        pos = n.send("left", receive = True)
+                    elif event.key == pygame.K_RIGHT:
+                        pos = n.send("right", receive = True)
+                    elif event.key == pygame.K_UP:
+                        pos = n.send("up", receive = True)
+                    elif event.key == pygame.K_DOWN:
+                        pos = n.send("down", receive = True)
+                    
+                    #Send messages
+                    elif event.key == pygame.K_z:
+                        #Alert server encrypted message is coming
+                        n.send('Control')
+                        chatMessage = f"Player {playerID}: Congratulations"
+                        n.send(rsa.encrypt(chatMessage.encode(), public_partner))
+                        #print(rsa.encrypt(chatMessage.encode(), public_partner))
+                        #print(chatMessage)
+                        #ignore = True
+
+                    elif event.key == pygame.K_x:
+                        n.send('Control')
+                        chatMessage = f"Player {playerID}: It works!"
+                        n.send(rsa.encrypt(chatMessage.encode(), public_partner))
+                        #print(chatMessage)
+                        #ignore = True
+
+                    elif event.key == pygame.K_c:
+                        n.send('Control')
+                        chatMessage = f"Player {playerID}: Ready?"
+                        n.send(rsa.encrypt(chatMessage.encode(), public_partner))
+                        #print(chatMessage)
+                        #ignore = True
+                elif event.type == pygame.KEYUP:
+                    # Send a 'stop' command when any movement key is released
+                    if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
+                        pos = n.send("stop", receive=True)
+        else:
+            if ignore == False:
+                pos = n.send("get", receive = True)
+        
+        players = []
+        
+        if pos is not None: 
+            #print(pos)
+            raw_players = pos.split("**")
+
+            if raw_players == '' : 
+                pass 
+            else : 
+                for raw_player in raw_players :
+                    raw_positions = raw_player.split("*")
+                    if len(raw_positions) == 0 :
+                        continue
+                    
+                    positions = []
+                    for raw_position in raw_positions :
+                        if raw_position == "" :
+                            continue
+                        nums = raw_position.split(')')[0].split('(')[1].split(',')
+                        positions.append((int(nums[0]), int(nums[1])))
+                    players.append(positions)
+
+        else:
+            if pos is not None:
+                print(pos)
+            
+
+        draw(win, players)
+    
+if __name__ == "__main__":
+    main()

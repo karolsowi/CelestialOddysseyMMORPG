@@ -1,3 +1,11 @@
+import numpy as np
+import socket
+from _thread import *
+from player import Game
+import uuid
+import time
+import rsa
+
 server = "localhost"
 port = 5555
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -14,6 +22,41 @@ except socket.error as e:
 
 s.listen(2)
 print("Waiting for connections, Server Started")
+
+game = Game(rows)
+game_state = ""
+last_move_timestamp = time.time()
+interval = 0.01
+moves_queue = set()
+
+skins = {
+    "red": "assets/ghost_red.png",
+    "green": "assets/ghost_green.png",
+    "blue": "assets/ghost_blue.png",
+    "yellow": "assets/ghost_yellow.png",
+    "orange": "assets/ghost_orange.png",
+    "purple": "assets/ghost_purple.png",
+    "cyan": "assets/ghost_cyan.png",
+    "white": "assets/ghost_white.png",
+    "gray": "assets/ghost_gray.png",
+    "black": "assets/ghost_black.png",
+}
+skins_list = list(skins.values())
+
+def broadcast(message):
+    for client in clients:
+        client.send(message.encode())
+
+def game_thread():
+    global game, moves_queue, game_state, last_move_timestamp
+    while True:
+        last_move_timestamp = time.time()
+        game.move(moves_queue)
+        moves_queue = set()
+        game_state = game.get_state()
+        while time.time() - last_move_timestamp < interval:
+            time.sleep(0.1)
+
 
 def client_thread(conn, addr):
     global game, moves_queue, game_state
