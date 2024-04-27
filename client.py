@@ -40,14 +40,14 @@ def drawBg(w, surface):
         x = x + sizeBtwn
         y = y +sizeBtwn
 
-        pygame.draw.line(surface, (line_color), (x, 0),(x,w))
-        pygame.draw.line(surface, (line_color), (0, y),(w,y))
+    #    pygame.draw.line(surface, (line_color), (x, 0),(x,w))  #rysowanie linii grid jak sie poruszaja postacie
+    #    pygame.draw.line(surface, (line_color), (0, y),(w,y))
 
 def drawThings(surface, positions, skin):
     global width, rows
     dis = width // rows
     sprite = pygame.image.load(skin)
-    sprite = pygame.transform.scale(sprite, (dis-2, dis-2))  # Scale sprite to fit the cell
+    #sprite = pygame.transform.scale(sprite, (dis-2, dis-2))  # skalowanie spritea zeby miescil sie w kratce
 
     for pos_id, pos in enumerate(positions):
         i, j = pos
@@ -96,7 +96,6 @@ def main():
     while flag:
         events = pygame.event.get()
         pos = None 
-        chat = None
         ignore = False
         if len(events) > 0 :
             
@@ -115,30 +114,7 @@ def main():
                         pos = n.send("up", receive = True)
                     elif event.key == pygame.K_DOWN:
                         pos = n.send("down", receive = True)
-                    
-                    #Send messages
-                    elif event.key == pygame.K_z:
-                        #Alert server encrypted message is coming
-                        n.send('Control')
-                        chatMessage = f"Player {playerID}: Congratulations"
-                        n.send(rsa.encrypt(chatMessage.encode(), public_partner))
-                        #print(rsa.encrypt(chatMessage.encode(), public_partner))
-                        #print(chatMessage)
-                        #ignore = True
 
-                    elif event.key == pygame.K_x:
-                        n.send('Control')
-                        chatMessage = f"Player {playerID}: It works!"
-                        n.send(rsa.encrypt(chatMessage.encode(), public_partner))
-                        #print(chatMessage)
-                        #ignore = True
-
-                    elif event.key == pygame.K_c:
-                        n.send('Control')
-                        chatMessage = f"Player {playerID}: Ready?"
-                        n.send(rsa.encrypt(chatMessage.encode(), public_partner))
-                        #print(chatMessage)
-                        #ignore = True
                 elif event.type == pygame.KEYUP:
                     # Send a 'stop' command when any movement key is released
                     if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:

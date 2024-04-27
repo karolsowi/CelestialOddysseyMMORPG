@@ -26,7 +26,7 @@ print("Waiting for connections, Server Started")
 game = Game(rows)
 game_state = ""
 last_move_timestamp = time.time()
-interval = 0.01
+interval = 0.005
 moves_queue = set()
 
 skins = {
@@ -55,7 +55,7 @@ def game_thread():
         moves_queue = set()
         game_state = game.get_state()
         while time.time() - last_move_timestamp < interval:
-            time.sleep(0.1)
+            time.sleep(0.15)
 
 
 def client_thread(conn, addr):
@@ -89,27 +89,6 @@ def client_thread(conn, addr):
         elif data in ["up", "down", "left", "right", "stop"]:
             move = data
             moves_queue.add((unique_id, move))
-
-        elif 'Control' in data:
-            #print("control received")
-            data2 = conn.recv(500)
-            messagetosend = rsa.decrypt(data2, private_key)
-            #broadcast(decrypteddata)
-            #print(messagetosend.decode())
-            checker = messagetosend.decode()
-            if "Congr" in checker:
-                print("hi")
-                #messagetosend = rsa.decrypt(data2, private_key)
-                #print(messagetosend)
-                broadcast(checker)
-            elif "works" in checker:
-                #messagetosend = rsa.decrypt(data2, private_key)
-                #print(messagetosend)
-                broadcast(checker)
-            elif "Ready" in checker:
-                #messagetosend = rsa.decrypt(data2, private_key)
-                #print(messagetosend)
-                broadcast(checker)
         
         else:
             print("Invalid data received from client:", data)
