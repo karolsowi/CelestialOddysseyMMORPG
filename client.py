@@ -5,6 +5,8 @@ import time
 import random
 import rsa
 
+pygame.display.set_caption('Celestial Oddyssey')
+
 playerID = random.randint(1, 100000)
 
 width = 1024
@@ -119,6 +121,13 @@ def main():
                     # Send a 'stop' command when any movement key is released
                     if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
                         pos = n.send("stop", receive=True)
+                    else:
+                        if ignore == False:
+                            pos = n.send("get", receive = True)
+
+                else:
+                    if ignore == False:
+                        pos = n.send("get", receive = True)
         else:
             if ignore == False:
                 pos = n.send("get", receive = True)
