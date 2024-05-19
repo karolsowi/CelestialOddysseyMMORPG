@@ -13,7 +13,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 #server_public_key, server_private_key = generate_keypair(8)
 
 counter = 0
-rows = 20
+rows = 200
 
 try:
     s.bind((server, port))
@@ -55,7 +55,7 @@ def game_thread():
         moves_queue = set()
         game_state = game.get_state()
         while time.time() - last_move_timestamp < interval:
-            time.sleep(0.15)
+            time.sleep(0.0005)
 
 
 def client_thread(conn, addr):
@@ -86,7 +86,7 @@ def client_thread(conn, addr):
             break
         elif data == "reset":
             game.reset_player(unique_id)
-        elif data in ["up", "down", "left", "right", "stop"]:
+        elif data in ["up", "down", "left", "right", "stop_x", "stop_y"]:
             move = data
             moves_queue.add((unique_id, move))
         

@@ -11,7 +11,7 @@ playerID = random.randint(1, 100000)
 
 width = 1024
 height = 768
-rows = 20 
+rows = 200
 
 skins = {
     "red": "assets/ghost_red.png",
@@ -106,28 +106,28 @@ def main():
                     flag = False
                     pos = n.send("quit", receive=True) 
                     pygame.quit()
-                
+
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         pos = n.send("left", receive = True)
-                    elif event.key == pygame.K_RIGHT:
+                    if event.key == pygame.K_RIGHT:
                         pos = n.send("right", receive = True)
-                    elif event.key == pygame.K_UP:
+                    if event.key == pygame.K_UP:
                         pos = n.send("up", receive = True)
-                    elif event.key == pygame.K_DOWN:
+                    if event.key == pygame.K_DOWN:
                         pos = n.send("down", receive = True)
-
                 elif event.type == pygame.KEYUP:
                     # Send a 'stop' command when any movement key is released
-                    if event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
-                        pos = n.send("stop", receive=True)
+                    if event.key in [pygame.K_LEFT, pygame.K_RIGHT]:
+                        pos = n.send("stop_x", receive=True)
+                    if event.key in [pygame.K_UP, pygame.K_DOWN]:
+                        pos = n.send("stop_y", receive=True)
                     else:
                         if ignore == False:
                             pos = n.send("get", receive = True)
 
-                else:
-                    if ignore == False:
-                        pos = n.send("get", receive = True)
+                if ignore == False:
+                    pos = n.send("get", receive = True)
         else:
             if ignore == False:
                 pos = n.send("get", receive = True)

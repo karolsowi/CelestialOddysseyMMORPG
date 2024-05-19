@@ -33,18 +33,15 @@ class Player:
     def move(self, key):
         if key == 'left':
             self.dirnx = -1
-            self.dirny = 0
-        elif key == 'right':
+        if key == 'right':
             self.dirnx = 1
-            self.dirny = 0
-        elif key == 'up':
-            self.dirnx = 0
+        if key == 'up':
             self.dirny = -1
-        elif key == 'down':
-            self.dirnx = 0
+        if key == 'down':
             self.dirny = 1
-        elif key == 'stop':
+        if key == 'stop_x':
             self.dirnx = 0
+        if key == 'stop_y':
             self.dirny = 0
         self.head.move(self.dirnx, self.dirny)
 
