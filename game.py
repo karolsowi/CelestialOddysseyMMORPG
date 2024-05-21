@@ -1,5 +1,6 @@
 import pygame
 import sys
+import subprocess
 
 # Initialize Pygame
 pygame.init()
@@ -107,12 +108,26 @@ def go_back():
     global current_screen
     current_screen = "menu"
 
+def start_server(ip, nickname, player_limit):
+    subprocess.Popen(["py", "server.py"])
+    # subprocess.Popen(["py", "server.py", ip, player_limit])
+    start_client(ip, nickname)
+
+
+def start_client(ip, nickname):
+    subprocess.Popen(["py", "client.py"])
+    #subprocess.Popen(["py", "client.py", ip, nickname])
+
 # Create buttons
 buttons = [
     Button("Join Game", (362, 300), join_game),
     Button("New Server", (362, 400), new_server),
     Button("Quit", (362, 500), quit_game)
 ]
+
+# Create join and start server buttons
+join_button = Button("Join Server", (362, 400), lambda: start_client(ip_box_join.text, nickname_box_join.text))
+start_server_button = Button("Start Server", (362, 430), lambda: start_server(ip_box_server.text, nickname_box_server.text, player_limit_box.text))
 
 # Create back button
 back_button = Button("Back", (362, 500), go_back)
@@ -144,15 +159,23 @@ while running:
             ip_box_join.handle_event(event)
             nickname_box_join.handle_event(event)
             back_button.check_hover(pygame.mouse.get_pos())
-            if event.type == pygame.MOUSEBUTTONDOWN and back_button.highlighted:
-                back_button.click()
+            join_button.check_hover(pygame.mouse.get_pos())
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if back_button.highlighted:
+                    back_button.click()
+                if join_button.highlighted:
+                    join_button.click()
         elif current_screen == "new_server":
             ip_box_server.handle_event(event)
             nickname_box_server.handle_event(event)
             player_limit_box.handle_event(event)
             back_button.check_hover(pygame.mouse.get_pos())
-            if event.type == pygame.MOUSEBUTTONDOWN and back_button.highlighted:
-                back_button.click()
+            start_server_button.check_hover(pygame.mouse.get_pos())
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if back_button.highlighted:
+                    back_button.click()
+                if start_server_button.highlighted:
+                    start_server_button.click()
 
     # Move background
     bg_x -= bg_speed
@@ -174,6 +197,7 @@ while running:
         draw_text(screen, "Nickname:", (362, 290))
         nickname_box_join.update()
         nickname_box_join.draw(screen)
+        join_button.draw(screen)
         back_button.draw(screen)
     elif current_screen == "new_server":
         draw_text(screen, "IP Address:", (362, 200))
@@ -185,6 +209,7 @@ while running:
         draw_text(screen, "Player Limit:", (362, 340))
         player_limit_box.update()
         player_limit_box.draw(screen)
+        start_server_button.draw(screen)
         back_button.draw(screen)
 
     pygame.display.flip()
