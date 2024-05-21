@@ -1,11 +1,14 @@
+import json
 import numpy as np
 import pygame 
 from network import Network
 import time
 import random
 import rsa
+from Crypto.Cipher import AES
+import base64
 
-pygame.display.set_caption('Celestial Oddyssey')
+pygame.display.set_caption('Celestial Oddyssey - In Game')
 
 playerID = random.randint(1, 100000)
 
@@ -26,6 +29,19 @@ skins = {
     "black": "assets/ghost_black.png",
 } 
 skins_list = list(skins.values())
+
+def encrypt_message(message, symmetric_key):
+    cipher = AES.new(symmetric_key, AES.MODE_EAX)
+    nonce = cipher.nonce
+    ciphertext, tag = cipher.encrypt_and_digest(message.encode())
+    return base64.b64encode(nonce + tag + ciphertext).decode()
+
+def decrypt_message(encrypted_message, symmetric_key):
+    data = base64.b64decode(encrypted_message)
+    nonce, tag, ciphertext = data[:16], data[16:32], data[32:]
+    cipher = AES.new(symmetric_key, AES.MODE_EAX, nonce=nonce)
+    return cipher.decrypt_and_verify(ciphertext, tag).decode()
+
 
 def drawBg(w, surface):
     global rows
@@ -74,26 +90,22 @@ def main():
     n = Network()
     # Send key to server
 
-    # Generate key pair
+    # Generate RSA key pair
     public_key, private_key = rsa.newkeys(1024)
-    public_partner = False
-    # print(public_key, private_key)
-    # tuple_as_string = json.dumps(public_key) 
-
-    #Send public key
-    n.send(public_key.save_pkcs1("PEM"))
-    public_partner = rsa.PublicKey.load_pkcs1(n.recv())
-    print("Public partner",public_partner)
     
-    #Handle recieved ServerKey
-    # Convert the string back to a tuple
-    #restored_tuple = json.loads(tuple_as_string)
-    #print(restored_tuple)
-
+    # Send the public key to the server
+    n.send(public_key.save_pkcs1())
+    
+    # Receive the server's public key
+    server_public_key = rsa.PublicKey.load_pkcs1(n.recv())
+    
+    # Generate symmetric key
+    symmetric_key = AES.get_random_bytes(16)
+    
+    # Encrypt the symmetric key with the server's public key and send it to the server
+    encrypted_symmetric_key = rsa.encrypt(symmetric_key, server_public_key)
+    n.send(encrypted_symmetric_key)
     flag = True
-    
-    #Send the client public key to the server
-    #n.send()
     
     while flag:
         events = pygame.event.get()
@@ -104,39 +116,38 @@ def main():
             for event in events : 
                 if event.type == pygame.QUIT:
                     flag = False
-                    pos = n.send("quit", receive=True) 
+                    pos = n.send(encrypt_message("quit", symmetric_key), receive=True) 
                     pygame.quit()
 
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
-                        pos = n.send("left", receive = True)
+                        pos = n.send(encrypt_message("left", symmetric_key), receive=True)
                     if event.key == pygame.K_RIGHT:
-                        pos = n.send("right", receive = True)
+                        pos = n.send(encrypt_message("right", symmetric_key), receive=True)
                     if event.key == pygame.K_UP:
-                        pos = n.send("up", receive = True)
+                        pos = n.send(encrypt_message("up", symmetric_key), receive=True)
                     if event.key == pygame.K_DOWN:
-                        pos = n.send("down", receive = True)
+                        pos = n.send(encrypt_message("down", symmetric_key), receive=True)
                 elif event.type == pygame.KEYUP:
-                    # Send a 'stop' command when any movement key is released
                     if event.key in [pygame.K_LEFT, pygame.K_RIGHT]:
-                        pos = n.send("stop_x", receive=True)
+                        pos = n.send(encrypt_message("stop_x", symmetric_key), receive=True)
                     if event.key in [pygame.K_UP, pygame.K_DOWN]:
-                        pos = n.send("stop_y", receive=True)
+                        pos = n.send(encrypt_message("stop_y", symmetric_key), receive=True)
                     else:
                         if ignore == False:
-                            pos = n.send("get", receive = True)
+                            pos = n.send(encrypt_message("get", symmetric_key), receive=True)
 
                 if ignore == False:
-                    pos = n.send("get", receive = True)
+                    pos = n.send(encrypt_message("get", symmetric_key), receive=True)
         else:
             if ignore == False:
-                pos = n.send("get", receive = True)
+                pos = n.send(encrypt_message("get", symmetric_key), receive=True)
         
         players = []
         
         if pos is not None: 
-            #print(pos)
-            raw_players = pos.split("**")
+            decrypted_pos = decrypt_message(pos, symmetric_key)
+            raw_players = decrypted_pos.split("**")
 
             if raw_players == '' : 
                 pass 

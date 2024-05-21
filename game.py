@@ -9,7 +9,7 @@ pygame.init()
 screen_width = 1024
 screen_height = 768
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Game Menu")
+pygame.display.set_caption('Celestial Oddyssey - Main Menu')
 
 # Load background image
 menu_bg = pygame.image.load('assets/menu_bg.png')

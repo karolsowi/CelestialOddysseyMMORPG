@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import socket
 from _thread import *
@@ -5,12 +6,15 @@ from player import Game
 import uuid
 import time
 import rsa
+from Crypto.Cipher import AES
+import base64
 
 server = "localhost"
 port = 5555
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# Generate key pair
-#server_public_key, server_private_key = generate_keypair(8)
+
+# Generowanie pary kluczy RSA
+server_public_key, server_private_key = rsa.newkeys(1024)
 
 counter = 0
 rows = 200
@@ -43,9 +47,22 @@ skins = {
 }
 skins_list = list(skins.values())
 
-def broadcast(message):
+def encrypt_message(message, symmetric_key):
+    cipher = AES.new(symmetric_key, AES.MODE_EAX)
+    nonce = cipher.nonce
+    ciphertext, tag = cipher.encrypt_and_digest(message.encode())
+    return base64.b64encode(nonce + tag + ciphertext).decode()
+
+def decrypt_message(encrypted_message, symmetric_key):
+    data = base64.b64decode(encrypted_message.encode())
+    nonce, tag, ciphertext = data[:16], data[16:32], data[32:]
+    cipher = AES.new(symmetric_key, AES.MODE_EAX, nonce=nonce)
+    return cipher.decrypt_and_verify(ciphertext, tag).decode()
+
+def broadcast(message, symmetric_key):
+    encrypted_message = encrypt_message(message, symmetric_key)
     for client in clients:
-        client.send(message.encode())
+        client.send(encrypted_message.encode())
 
 def game_thread():
     global game, moves_queue, game_state, last_move_timestamp
@@ -58,7 +75,7 @@ def game_thread():
             time.sleep(0.0005)
 
 
-def client_thread(conn, addr):
+def client_thread(conn, addr, symmetric_key):
     global game, moves_queue, game_state
     unique_id = str(uuid.uuid4())
     skin = skins_list[np.random.randint(0, len(skins_list))]
@@ -68,10 +85,8 @@ def client_thread(conn, addr):
 
     while True:
         #Need to tell nto to decode ahead of time
-
-        data = conn.recv(500).decode()
-        #print(data)
-        conn.send(game_state.encode())
+        data = decrypt_message(conn.recv(500).decode(), symmetric_key)
+        conn.send(encrypt_message(game_state, symmetric_key).encode())
         move = None
         
         if not data:
@@ -97,8 +112,6 @@ def client_thread(conn, addr):
 
 if __name__ == "__main__":
     clients = []
-    client_public_keys = []
-    public_key, private_key = rsa.newkeys(1024)
     #print("PrivateKey: ", private_key)
     #print("PublicKey: ", public_key)
     
@@ -106,19 +119,13 @@ if __name__ == "__main__":
         conn, addr = s.accept()
         clients.append(conn)
         
-        public_partner = False
-        #clientPublicKey = conn.recv(500).decode()
-        #print(clientPublicKey)
-        clientPublicKey = conn.recv(500).decode()
-        #print("RECEIVED CLIENT PUBLIC KEY", clientPublicKey)
+        # Receive the client's public key
+        client_public_key = rsa.PublicKey.load_pkcs1(conn.recv(1024))
+        conn.send(server_public_key.save_pkcs1())
 
-        # Convert the string back to a tuple
-        #restored_tuple = json.loads(data)
-        client_public_keys.append(clientPublicKey)
+        # Receive the encrypted symmetric key from the client
+        encrypted_symmetric_key = conn.recv(1024)
+        symmetric_key = rsa.decrypt(encrypted_symmetric_key, server_private_key)
         
-        #Send the client the servers public key
-        #tuple_as_string = json.dumps(server_public_key) 
-        conn.send(public_key.save_pkcs1("PEM"))
-        
-        #print("Connected to:", addr)
-        start_new_thread(client_thread, (conn, addr))
+        print("Connected to:", addr)
+        start_new_thread(client_thread, (conn, addr, symmetric_key))
