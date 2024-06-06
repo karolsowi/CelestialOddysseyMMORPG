@@ -8,12 +8,19 @@ import time
 import rsa
 from Crypto.Cipher import AES
 import base64
+import sys
 
-server = "localhost"
-port = 5555
+# Read IP and port from command-line arguments
+if len(sys.argv) < 3:
+    print("Usage: server.py <IP> <Port>")
+    sys.exit(1)
+
+server = sys.argv[1]
+port = int(sys.argv[2])
+
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# Generowanie pary kluczy RSA
+# Generating RSA key pair
 server_public_key, server_private_key = rsa.newkeys(1024)
 
 counter = 0
@@ -22,10 +29,11 @@ rows = 200
 try:
     s.bind((server, port))
 except socket.error as e:
-    str(e)
+    print(f"Error binding to {server}:{port}: {e}")
+    sys.exit(1)
 
 s.listen(2)
-print("Waiting for connections, Server Started")
+print(f"Waiting for connections, Server started at {server}:{port}")
 
 game = Game(rows)
 game_state = ""
@@ -74,8 +82,7 @@ def game_thread():
         while time.time() - last_move_timestamp < interval:
             time.sleep(0.0005)
 
-
-def client_thread(conn, addr, symmetric_key):
+def client_thread(conn, symmetric_key):
     global game, moves_queue, game_state
     unique_id = str(uuid.uuid4())
     skin = skins_list[np.random.randint(0, len(skins_list))]
@@ -84,7 +91,6 @@ def client_thread(conn, addr, symmetric_key):
     start_new_thread(game_thread, ())
 
     while True:
-        #Need to tell nto to decode ahead of time
         data = decrypt_message(conn.recv(500).decode(), symmetric_key)
         conn.send(encrypt_message(game_state, symmetric_key).encode())
         move = None
@@ -93,7 +99,6 @@ def client_thread(conn, addr, symmetric_key):
             print("No data received from client")
             break
         elif data == "get":
-            #print("Received get")
             pass
         elif data == "quit":
             print("Received quit")
@@ -104,7 +109,6 @@ def client_thread(conn, addr, symmetric_key):
         elif data in ["up", "down", "left", "right", "stop_x", "stop_y"]:
             move = data
             moves_queue.add((unique_id, move))
-        
         else:
             print("Invalid data received from client:", data)
 
@@ -112,11 +116,9 @@ def client_thread(conn, addr, symmetric_key):
 
 if __name__ == "__main__":
     clients = []
-    #print("PrivateKey: ", private_key)
-    #print("PublicKey: ", public_key)
     
     while True:
-        conn, addr = s.accept()
+        conn, _ = s.accept()
         clients.append(conn)
         
         # Receive the client's public key
@@ -127,5 +129,5 @@ if __name__ == "__main__":
         encrypted_symmetric_key = conn.recv(1024)
         symmetric_key = rsa.decrypt(encrypted_symmetric_key, server_private_key)
         
-        print("Connected to:", addr)
-        start_new_thread(client_thread, (conn, addr, symmetric_key))
+        print(f"Connected to client, server running on {server}:{port}")
+        start_new_thread(client_thread, (conn, symmetric_key))

@@ -108,15 +108,12 @@ def go_back():
     global current_screen
     current_screen = "menu"
 
-def start_server(ip, nickname, player_limit):
-    subprocess.Popen(["py", "server.py"])
-    # subprocess.Popen(["py", "server.py", ip, player_limit])
-    start_client(ip, nickname)
+def start_server(ip, port, nickname, player_limit):
+    subprocess.Popen(["python", "server.py", ip, str(port)])
+    start_client(ip, port, nickname)
 
-
-def start_client(ip, nickname):
-    subprocess.Popen(["py", "client.py"])
-    #subprocess.Popen(["py", "client.py", ip, nickname])
+def start_client(ip, port, nickname):
+    subprocess.Popen(["python", "client.py", ip, str(port), nickname])
 
 # Create buttons
 buttons = [
@@ -126,20 +123,23 @@ buttons = [
 ]
 
 # Create join and start server buttons
-join_button = Button("Join Server", (362, 400), lambda: start_client(ip_box_join.text, nickname_box_join.text))
-start_server_button = Button("Start Server", (362, 430), lambda: start_server(ip_box_server.text, nickname_box_server.text, player_limit_box.text))
+join_button = Button("Join Server", (362, 435), lambda: start_client(ip_box_join.text, port_box_join.text, nickname_box_join.text))
+start_server_button = Button("Start Server", (362, 480), lambda: start_server(ip_box_server.text, port_box_server.text, nickname_box_server.text, player_limit_box.text))
 
 # Create back button
 back_button = Button("Back", (362, 500), go_back)
+back_button2 = Button("Back", (362, 550), go_back)
 
 # Input boxes for join game
-ip_box_join = InputBox(362, 250, 300, 32, 21)
-nickname_box_join = InputBox(362, 320, 300, 32, 12)
+ip_box_join = InputBox(362, 250, 300, 32, 21, '')
+port_box_join = InputBox(362, 320, 300, 32, 5, '5555', 'number')
+nickname_box_join = InputBox(362, 390, 300, 32, 12)
 
 # Input boxes for new server
-ip_box_server = InputBox(362, 230, 300, 32, 21)
-nickname_box_server = InputBox(362, 300, 300, 32, 12)
-player_limit_box = InputBox(362, 370, 300, 32, 5, '10', 'number')
+ip_box_server = InputBox(362, 220, 300, 32, 21, '')
+port_box_server = InputBox(362, 290, 300, 32, 5, '5555', 'number')
+nickname_box_server = InputBox(362, 360, 300, 32, 12)
+player_limit_box = InputBox(362, 430, 300, 32, 5, '10', 'number')
 
 # Main loop
 running = True
@@ -157,6 +157,7 @@ while running:
                     button.click()
         elif current_screen == "join":
             ip_box_join.handle_event(event)
+            port_box_join.handle_event(event)
             nickname_box_join.handle_event(event)
             back_button.check_hover(pygame.mouse.get_pos())
             join_button.check_hover(pygame.mouse.get_pos())
@@ -164,18 +165,20 @@ while running:
                 if back_button.highlighted:
                     back_button.click()
                 if join_button.highlighted:
-                    join_button.click()
+                    start_client(ip_box_join.text, port_box_join.text, nickname_box_join.text)
+
         elif current_screen == "new_server":
             ip_box_server.handle_event(event)
+            port_box_server.handle_event(event)
             nickname_box_server.handle_event(event)
             player_limit_box.handle_event(event)
-            back_button.check_hover(pygame.mouse.get_pos())
+            back_button2.check_hover(pygame.mouse.get_pos())
             start_server_button.check_hover(pygame.mouse.get_pos())
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if back_button.highlighted:
-                    back_button.click()
+                if back_button2.highlighted:
+                    back_button2.click()
                 if start_server_button.highlighted:
-                    start_server_button.click()
+                    start_server(ip_box_server.text, port_box_server.text, nickname_box_server.text, player_limit_box.text)
 
     # Move background
     bg_x -= bg_speed
@@ -194,23 +197,31 @@ while running:
         draw_text(screen, "IP Address:", (362, 220))
         ip_box_join.update()
         ip_box_join.draw(screen)
-        draw_text(screen, "Nickname:", (362, 290))
+        draw_text(screen, "Port:", (362, 290))
+        port_box_join.update()
+        port_box_join.draw(screen)
+        draw_text(screen, "Nickname:", (362, 360))
         nickname_box_join.update()
         nickname_box_join.draw(screen)
         join_button.draw(screen)
         back_button.draw(screen)
+
     elif current_screen == "new_server":
-        draw_text(screen, "IP Address:", (362, 200))
+        draw_text(screen, "IP Address:", (362, 190))
         ip_box_server.update()
         ip_box_server.draw(screen)
-        draw_text(screen, "Nickname:", (362, 270))
+        draw_text(screen, "Port:", (362, 260))
+        port_box_server.update()
+        port_box_server.draw(screen)
+        draw_text(screen, "Nickname:", (362, 330))
         nickname_box_server.update()
         nickname_box_server.draw(screen)
-        draw_text(screen, "Player Limit:", (362, 340))
+        draw_text(screen, "Player Limit:", (362, 400))
         player_limit_box.update()
         player_limit_box.draw(screen)
         start_server_button.draw(screen)
-        back_button.draw(screen)
+        back_button2.draw(screen)
+
 
     pygame.display.flip()
     pygame.time.Clock().tick(60)

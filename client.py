@@ -7,6 +7,16 @@ import random
 import rsa
 from Crypto.Cipher import AES
 import base64
+import sys  # Add sys to handle command-line arguments
+
+# Read IP and port from command-line arguments
+if len(sys.argv) < 4:
+    print("Usage: client.py <IP> <Port> <Nickname>")
+    sys.exit(1)
+
+server_ip = sys.argv[1]
+server_port = int(sys.argv[2])
+nickname = sys.argv[3]
 
 pygame.display.set_caption('Celestial Oddyssey - In Game')
 
@@ -42,53 +52,45 @@ def decrypt_message(encrypted_message, symmetric_key):
     cipher = AES.new(symmetric_key, AES.MODE_EAX, nonce=nonce)
     return cipher.decrypt_and_verify(ciphertext, tag).decode()
 
-
 def drawBg(w, surface):
     global rows
     bg_dungeon = pygame.image.load("assets/dungeon.png")
     bg_dungeon = pygame.transform.scale(bg_dungeon, (w, w))
-    surface.blit(bg_dungeon, (0,0))
+    surface.blit(bg_dungeon, (0, 0))
 
     sizeBtwn = w // rows
 
     x = 0
     y = 0
-    line_color = (255,255,255,0)
+    line_color = (255, 255, 255, 0)
     for l in range(rows):
         x = x + sizeBtwn
-        y = y +sizeBtwn
-
-    #    pygame.draw.line(surface, (line_color), (x, 0),(x,w))  #rysowanie linii grid jak sie poruszaja postacie
-    #    pygame.draw.line(surface, (line_color), (0, y),(w,y))
+        y = y + sizeBtwn
 
 def drawThings(surface, positions, skin):
     global width, rows
     dis = width // rows
     sprite = pygame.image.load(skin)
-    #sprite = pygame.transform.scale(sprite, (dis-2, dis-2))  # skalowanie spritea zeby miescil sie w kratce
 
     for pos_id, pos in enumerate(positions):
         i, j = pos
         surface.blit(sprite, (i * dis + 1, j * dis + 1))
 
-
 def draw(surface, players):
     global skins_list
 
-    surface.fill((0,0,0))
+    surface.fill((0, 0, 0))
     drawBg(width, surface)
-    for i, player in enumerate(players) : 
+    for i, player in enumerate(players):
         skin = skins_list[i % len(skins_list)]
-        drawThings(surface, player, skin = skin) 
+        drawThings(surface, player, skin=skin)
     pygame.display.update()
 
-
 def main():
-    
-    win = pygame.display.set_mode((width,height))
-    
-    n = Network()
-    # Send key to server
+    win = pygame.display.set_mode((width, height))
+
+    print(f"Connecting to server at IP: {server_ip}, Port: {server_port}")
+    n = Network(server_ip, server_port)  # Pass the IP and port to the Network class
 
     # Generate RSA key pair
     public_key, private_key = rsa.newkeys(1024)
@@ -174,3 +176,4 @@ def main():
     
 if __name__ == "__main__":
     main()
+

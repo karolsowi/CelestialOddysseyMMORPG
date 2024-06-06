@@ -1,18 +1,17 @@
 import socket
 
 class Network:
-    def __init__(self):
+    def __init__(self, server_ip="127.0.0.1", server_port=5555):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server = "localhost"
-        self.port = 5555
-        self.addr = (self.server, self.port)
+        self.server = server_ip
+        self.port = server_port
         self.connect()
 
     def connect(self):
         try:
-            self.client.connect(self.addr)
+            self.client.connect((self.server, self.port))
         except Exception as e:
-            print(f"Unable to connect to server: {e}")
+            print(f"Unable to connect to server {self.server}:{self.port}: {e}")
 
     def send(self, data, receive=False):
         try:
