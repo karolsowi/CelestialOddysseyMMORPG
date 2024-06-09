@@ -8,8 +8,9 @@ class Cube:
     rows = 20
     w = 500
 
-    def __init__(self, start, skin="assets/ghost.png"):
+    def __init__(self, start, skin="assets/ghost.png", nickname=""):
         self.pos = start
+        self.nickname = nickname
         if os.path.exists(skin):
             self.skin = pygame.image.load(skin)
             self.skin = pygame.transform.scale(self.skin, (self.w // self.rows, self.w // self.rows))
@@ -25,8 +26,8 @@ class Cube:
         surface.blit(self.skin, (self.pos[0] * dis + 1, self.pos[1] * dis + 1))
 
 class Player:
-    def __init__(self, skin, pos):
-        self.head = Cube(pos, skin)
+    def __init__(self, skin, pos, nickname):
+        self.head = Cube(pos, skin, nickname)
         self.dirnx = 0
         self.dirny = 0  
 
@@ -50,6 +51,9 @@ class Player:
 
     def get_pos(self):
         return str(self.head.pos)
+    
+    def get_nickname(self):
+        return str(self.head.nickname)
 
 class Game:
 
@@ -57,8 +61,8 @@ class Game:
         self.rows = rows
         self.players = {} 
     
-    def add_player(self, user_id, skin) : 
-        self.players[user_id] = Player(skin, (10,10))
+    def add_player(self, user_id, skin, nickname) : 
+        self.players[user_id] = Player(skin, (10,10), nickname)
     
     def remove_player(self, user_id) :
         self.players.pop(user_id)
@@ -78,11 +82,25 @@ class Game:
     def get_player(self, user_id) : 
         return self.players[user_id].head.pos
     
-    def get_state(self) : 
+    def get_all_pos(self) :
         players_pos = [p.get_pos() for p in self.players.values()]
         players_pos_str = "**".join(players_pos)
 
         return players_pos_str
+    
+    def get_state(self) : 
+        players_pos_str = self.get_all_pos()
+        nicknames_list_str = self.get_nicknames()
+
+        game_state = players_pos_str + "***" + nicknames_list_str
+
+        return game_state
+    
+    def get_nicknames(self) :
+        nicknames_list = [p.get_nickname() for p in self.players.values()]
+        nicknames_list_str = "**".join(nicknames_list)
+
+        return nicknames_list_str
     
     
 if __name__ == "__main__":

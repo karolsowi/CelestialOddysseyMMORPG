@@ -18,6 +18,7 @@ server_ip = sys.argv[1]
 server_port = int(sys.argv[2])
 nickname = sys.argv[3]
 
+pygame.init()
 pygame.display.set_caption('Celestial Oddyssey - In Game')
 
 playerID = random.randint(1, 100000)
@@ -40,6 +41,10 @@ skins = {
 } 
 skins_list = list(skins.values())
 
+win = pygame.display.set_mode((width,height))
+
+font = pygame.font.Font('freesansbold.ttf', 15)
+
 def encrypt_message(message, symmetric_key):
     cipher = AES.new(symmetric_key, AES.MODE_EAX)
     nonce = cipher.nonce
@@ -47,10 +52,14 @@ def encrypt_message(message, symmetric_key):
     return base64.b64encode(nonce + tag + ciphertext).decode()
 
 def decrypt_message(encrypted_message, symmetric_key):
-    data = base64.b64decode(encrypted_message)
-    nonce, tag, ciphertext = data[:16], data[16:32], data[32:]
-    cipher = AES.new(symmetric_key, AES.MODE_EAX, nonce=nonce)
-    return cipher.decrypt_and_verify(ciphertext, tag).decode()
+    try:
+        data = base64.b64decode(encrypted_message)
+        nonce, tag, ciphertext = data[:16], data[16:32], data[32:]
+        cipher = AES.new(symmetric_key, AES.MODE_EAX, nonce=nonce)
+        return cipher.decrypt_and_verify(ciphertext, tag).decode()
+    except Exception as e:
+        print("Error decrypting message on client side:", e)
+        return None
 
 def drawBg(w, surface):
     global rows
@@ -67,28 +76,34 @@ def drawBg(w, surface):
         x = x + sizeBtwn
         y = y + sizeBtwn
 
-def drawThings(surface, positions, skin):
+def drawThings(surface, positions, nickname, skin):
     global width, rows
     dis = width // rows
     sprite = pygame.image.load(skin)
+    
+    text = font.render(nickname, True, 0)
+    textRect = text.get_rect()
 
     for pos_id, pos in enumerate(positions):
         i, j = pos
         surface.blit(sprite, (i * dis + 1, j * dis + 1))
+        textRect.center = (i * dis + 35, j * dis - 10)
+        win.blit(text, textRect)
 
-def draw(surface, players):
+def draw(surface, players, nicknames_list):
     global skins_list
 
     surface.fill((0, 0, 0))
     drawBg(width, surface)
     for i, player in enumerate(players):
         skin = skins_list[i % len(skins_list)]
-        drawThings(surface, player, skin=skin)
-    pygame.display.update()
+        if i < len(nicknames_list):
+            nickname = nicknames_list[i]
+        else:
+            nickname = ""
+        drawThings(surface, player, nickname, skin=skin)
 
 def main():
-    win = pygame.display.set_mode((width, height))
-
     print(f"Connecting to server at IP: {server_ip}, Port: {server_port}")
     n = Network(server_ip, server_port)  # Pass the IP and port to the Network class
 
@@ -107,6 +122,10 @@ def main():
     # Encrypt the symmetric key with the server's public key and send it to the server
     encrypted_symmetric_key = rsa.encrypt(symmetric_key, server_public_key)
     n.send(encrypted_symmetric_key)
+
+    #Send nickname to the server
+    nicknames = n.send(encrypt_message(nickname, symmetric_key), receive=True)
+
     flag = True
     
     while flag:
@@ -149,7 +168,11 @@ def main():
         
         if pos is not None: 
             decrypted_pos = decrypt_message(pos, symmetric_key)
-            raw_players = decrypted_pos.split("**")
+            split_data = decrypted_pos.split("***")
+            pos_str = split_data[0]
+            nicknames_str = split_data[1]
+
+            raw_players = pos_str.split("**")
 
             if raw_players == '' : 
                 pass 
@@ -170,9 +193,15 @@ def main():
         else:
             if pos is not None:
                 print(pos)
-            
 
-        draw(win, players)
+        # Handle receiving updated nicknames list
+        if nicknames_str is not None:
+            nicknames_list = nicknames_str.split("**")
+            #print(nicknames_list)
+
+        draw(win, players, nicknames_list)
+
+        pygame.display.update()
     
 if __name__ == "__main__":
     main()

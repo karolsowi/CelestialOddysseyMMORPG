@@ -40,6 +40,8 @@ game_state = ""
 last_move_timestamp = time.time()
 interval = 0.005
 moves_queue = set()
+clients = []
+nicknames = {}
 
 skins = {
     "red": "assets/ghost_red.png",
@@ -62,15 +64,20 @@ def encrypt_message(message, symmetric_key):
     return base64.b64encode(nonce + tag + ciphertext).decode()
 
 def decrypt_message(encrypted_message, symmetric_key):
-    data = base64.b64decode(encrypted_message.encode())
-    nonce, tag, ciphertext = data[:16], data[16:32], data[32:]
-    cipher = AES.new(symmetric_key, AES.MODE_EAX, nonce=nonce)
-    return cipher.decrypt_and_verify(ciphertext, tag).decode()
+    try:
+        data = base64.b64decode(encrypted_message.encode())
+        nonce, tag, ciphertext = data[:16], data[16:32], data[32:]
+        cipher = AES.new(symmetric_key, AES.MODE_EAX, nonce=nonce)
+        return cipher.decrypt_and_verify(ciphertext, tag).decode()
+    except Exception as e:
+        print("Error decrypting message on server side:", e)
+        return None
 
-def broadcast(message, symmetric_key):
+def broadcast(message, symmetric_key, include_self=False):
     encrypted_message = encrypt_message(message, symmetric_key)
     for client in clients:
-        client.send(encrypted_message.encode())
+        if include_self or client != conn:  # Optionally exclude the sender
+            client.send(encrypted_message.encode())
 
 def game_thread():
     global game, moves_queue, game_state, last_move_timestamp
@@ -82,11 +89,17 @@ def game_thread():
         while time.time() - last_move_timestamp < interval:
             time.sleep(0.0005)
 
-def client_thread(conn, symmetric_key):
-    global game, moves_queue, game_state
+def client_thread(conn, symmetric_key, nickname):
+    global game, moves_queue, game_state, clients, nicknames
     unique_id = str(uuid.uuid4())
     skin = skins_list[np.random.randint(0, len(skins_list))]
-    game.add_player(unique_id, skin=skin)
+    game.add_player(unique_id, skin=skin, nickname=nickname)
+
+    # Store the nickname in the nicknames dictionary
+    nicknames[unique_id] = nickname
+
+    raw_nicknames = game.get_nicknames()
+    conn.send(encrypt_message(raw_nicknames, symmetric_key).encode())
 
     start_new_thread(game_thread, ())
 
@@ -103,6 +116,7 @@ def client_thread(conn, symmetric_key):
         elif data == "quit":
             print("Received quit")
             game.remove_player(unique_id)
+            nicknames.pop(unique_id)
             break
         elif data == "reset":
             game.reset_player(unique_id)
@@ -113,10 +127,9 @@ def client_thread(conn, symmetric_key):
             print("Invalid data received from client:", data)
 
     conn.close()
+    clients.remove(conn)
 
 if __name__ == "__main__":
-    clients = []
-    
     while True:
         conn, _ = s.accept()
         clients.append(conn)
@@ -128,6 +141,9 @@ if __name__ == "__main__":
         # Receive the encrypted symmetric key from the client
         encrypted_symmetric_key = conn.recv(1024)
         symmetric_key = rsa.decrypt(encrypted_symmetric_key, server_private_key)
+
+        # Receive nickname from the client
+        nickname = decrypt_message(conn.recv(500).decode(), symmetric_key)
         
-        print(f"Connected to client, server running on {server}:{port}")
-        start_new_thread(client_thread, (conn, symmetric_key))
+        print(f"Connected to client '{nickname}', server running on {server}:{port}")
+        start_new_thread(client_thread, (conn, symmetric_key, nickname))
