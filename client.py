@@ -1,15 +1,11 @@
-import json
-import numpy as np
 import pygame 
 from network import Network
-import time
 import random
 import rsa
 from Crypto.Cipher import AES
 import base64
-import sys  # Add sys to handle command-line arguments
+import sys
 
-# Read IP and port from command-line arguments
 if len(sys.argv) < 4:
     print("Usage: client.py <IP> <Port> <Nickname>")
     sys.exit(1)
