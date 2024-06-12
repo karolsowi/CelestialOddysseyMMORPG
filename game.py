@@ -131,12 +131,12 @@ back_button = Button("Back", (362, 500), go_back)
 back_button2 = Button("Back", (362, 550), go_back)
 
 # Input boxes for join game
-ip_box_join = InputBox(362, 250, 300, 32, 21, '')
+ip_box_join = InputBox(362, 250, 300, 32, 21, '127.0.0.1')
 port_box_join = InputBox(362, 320, 300, 32, 5, '5555', 'number')
 nickname_box_join = InputBox(362, 390, 300, 32, 12)
 
 # Input boxes for new server
-ip_box_server = InputBox(362, 220, 300, 32, 21, '')
+ip_box_server = InputBox(362, 220, 300, 32, 21, '127.0.0.1')
 port_box_server = InputBox(362, 290, 300, 32, 5, '5555', 'number')
 nickname_box_server = InputBox(362, 360, 300, 32, 12)
 player_limit_box = InputBox(362, 430, 300, 32, 5, '10', 'number')
